@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Analítico - Quini 6</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- PapaParse para leer CSV en el navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+</head>
+<body>
+
+    <!-- BARRA LATERAL (PANEL DE CONTROL) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>⚙️ Panel de Control</h2>
+        </div>
+        
+        <!-- INTERRUPTOR DE MODO DE FILTRADO -->
+        <div class="control-group mode-switch-container">
+            <label class="switch-label">
+                <input type="checkbox" id="modo-comparacion-toggle" onchange="toggleModoFiltro()">
+                <span class="slider-text">🔄 Alternar la comparación (Mes por Años)</span>
+            </label>
+        </div>
+
+        <!-- CONTROLES MODO 1: RANGO DE FECHAS -->
+        <div id="controles-rango" class="filtro-modo-section active">
+            <div class="control-group">
+                <label for="fecha-inicio">📅 Fecha Inicio</label>
+                <input type="text" id="fecha-inicio" placeholder="Seleccionar fecha...">
+            </div>
+
+            <div class="control-group">
+                <label for="fecha-fin">📅 Fecha Fin</label>
+                <input type="text" id="fecha-fin" placeholder="Seleccionar fecha...">
+            </div>
+        </div>
+
+        <!-- CONTROLES MODO 2: COMPARACIÓN MES Y AÑOS INDEPENDIENTES -->
+        <div id="controles-multianual" class="filtro-modo-section">
+            <div class="control-group">
+                <label for="select-mes-fijo">📆 1. Seleccione un mes</label>
+                <select id="select-mes-fijo">
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>📅 2. Seleccione uno o más años</label>
+                <!-- Contenedor donde se generarán los checkboxes de los años dinámicamente -->
+                <div id="contenedor-anos-checkboxes" class="anos-checkboxes-container">
+                    <!-- Se llenará automáticamente con JavaScript -->
+                </div>
+                <small class="info-text" style="font-size: 0.75rem;">💡 Toca las casillas para comparar varios años a la vez.</small>
+            </div>
+        </div>
+
+        <div class="metric-card">
+            <span>Sorteos en análisis</span>
+            <strong id="metric-sorteos">0 / 0</strong>
+        </div>
+    </aside>
+
+    <!-- BOTÓN DE CONTROL FLOTANTE (<< / >>) -->
+    <button class="sidebar-toggle-btn" id="sidebar-toggle" onclick="toggleSidebar()" title="Mostrar/Ocultar Panel">
+        <span id="toggle-icon">«</span>
+    </button>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="main-content">
+        <header>
+            <h1>🎲 Panel Analítico - Quini 6</h1>
+        </header>
+
+        <!-- PESTAÑAS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('frecuencias')">📊 Frecuencias</button>
+            <button class="tab-btn" onclick="switchTab('combinaciones')">🔗 Combinaciones más frecuentes</button>
+            <button class="tab-btn" onclick="switchTab('empieza-con')">🔗 Empieza con</button>
+        </div>
+
+        <!-- SECCIÓN 1: FRECUENCIAS -->
+        <section id="tab-frecuencias" class="tab-content active">
+            <h3 id="titulo-frecuencias">Frecuencias de las Bolillas en el intervalo</h3>
+            
+            <div class="freq-grid">
+                <div class="freq-col">
+                    <h4>Por Total 🟧</h4>
+                    <div class="table-scroll"><table id="tabla-total"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+                <div class="freq-col">
+                    <h4>Por Sorteo 🟦</h4>
+                    <div class="table-scroll"><table id="tabla-sorteo"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+                <div class="freq-col">
+                    <h4>Tradicional 🟪</h4>
+                    <div class="table-scroll"><table id="tabla-trad"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+                <div class="freq-col">
+                    <h4>Segunda 🟨</h4>
+                    <div class="table-scroll"><table id="tabla-seg"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+                <div class="freq-col">
+                    <h4>Revancha 🟨</h4>
+                    <div class="table-scroll"><table id="tabla-rev"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+                <div class="freq-col">
+                    <h4>Siempre sale 🟩</h4>
+                    <div class="table-scroll"><table id="tabla-ss"><thead><tr><th>Bolilla</th><th>Veces</th></tr></thead><tbody></tbody></table></div>
+                </div>
+            </div>
+
+            <!-- NOTAS EXPLICATIVAS AL PIE DE LAS TABLAS -->
+            <div class="info-notes-container">
+                <p class="info-text">💡 <strong>Nota acerca de 'Por Total':</strong> Suma la cantidad total de veces que cada bolilla ha salido en todas las posiciones sorteadas dentro del intervalo seleccionado.</p>
+                <p class="info-text">💡 <strong>Nota acerca de 'Por Sorteo':</strong> Cuenta la cantidad de sorteos únicos en los que la bolilla apareció al menos una vez (independientemente de cuántas veces salió en el mismo sorteo).</p>
+                <p class="info-text">💡 <strong>Nota acerca de 'Tradicional':</strong> Conteo de apariciones de cada bolilla exclusivamente en los sorteos de la modalidad Tradicional.</p>
+                <p class="info-text">💡 <strong>Nota acerca de 'Segunda':</strong> Conteo de apariciones de cada bolilla exclusivamente en los sorteos de la Segunda del Quini.</p>
+                <p class="info-text">💡 <strong>Nota acerca de 'Revancha':</strong> Conteo de apariciones de cada bolilla exclusivamente en los sorteos de la Revancha.</p>
+                <p class="info-text">💡 <strong>Nota acerca de 'Siempre sale':</strong> Conteo de apariciones de cada bolilla exclusivamente en los sorteos del Quini que Siempre Sale.</p>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: COMBINACIONES -->
+        <section id="tab-combinaciones" class="tab-content">
+            <h3 id="titulo-combinaciones">Combinaciones más frecuentes en el intervalo</h3>
+            <p>Analiza las combinaciones o jugadas más repetidas, incluyendo el numero de sorteo, la fecha y la modalidad.</p>
+
+            <div class="metric-card" style="margin-top: 1rem; margin-bottom: 1rem; max-width: 450px;">
+                <span>🔥 Combinación más frecuente (según criterio actual)</span>
+                <strong id="metric-top-comb" style="font-size: 1.1rem; color: #fb923c;">-</strong>
+            </div>
+
+            <div class="comb-filters-card">
+                <div class="comb-controls">
+                    <div class="control-group">
+                        <label for="select-tamanio">Tipo de combinación</label>
+                        <select id="select-tamanio">
+                            <option value="2">2 bolillas (Tuplas de 2)</option>
+                            <option value="3">3 bolillas (Tuplas de 3)</option>
+                            <option value="4">4 bolillas (Tuplas de 4)</option>
+                            <option value="5">5 bolillas (Tuplas de 5)</option>
+                            <option value="6" selected>6 bolillas (Tuplas de 6)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="select-modalidad">Tipo de modalidad</label>
+                        <select id="select-modalidad">
+                            <option value="Todas">Todas</option>
+                            <option value="SORTEO TRADICIONAL">Tradicional</option>
+                            <option value="LA SEGUNDA DEL QUINI">Segunda</option>
+                            <option value="SORTEO REVANCHA">Revancha</option>
+                            <option value="QUINI QUE SIEMPRE SALE">Siempre sale</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="input-busqueda">Buscar combinación</label>
+                        <input type="text" id="input-busqueda" placeholder="Ej. 5-12-22 (o con espacios/comas)">
+                    </div>
+                </div>
+            </div>
+
+            <p id="total-combs-text" class="bold-text" style="margin-top: 1.5rem; margin-bottom: 0.5rem;"></p>
+            <div class="table-scroll-large">
+                <table id="tabla-combinaciones">
+                    <thead>
+                        <tr>
+                            <th>Combinación</th>
+                            <th>Veces</th>
+                            <th>Sorteo #, Fecha, Modalidad y Jugada</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: EMPIEZA CON -->
+        <section id="tab-empieza-con" class="tab-content">
+            <h3 id="titulo-empieza-con">Sorteos que empiezan con un determinado número en el intervalo</h3>
+            <p>Analiza y filtra todas las jugadas que empiezan con un determinado número.</p>
+
+            <div class="metric-card" style="margin-top: 1rem; margin-bottom: 1rem; max-width: 550px;">
+                <span>🔥 Números que más suelen acompañar (según criterio actual)</span>
+                <strong id="metric-top-empieza" style="font-size: 1.05rem; color: #fb923c;">-</strong>
+            </div>
+
+            <div class="comb-filters-card">
+                <div class="comb-controls">
+                    <div class="control-group">
+                        <label for="select-numero-inicial">Numero o bolilla</label>
+                        <select id="select-numero-inicial">
+                            <option value="">-- Todos (Ordenados por número y fecha) --</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="select-modalidad-empieza">Tipo de modalidad</label>
+                        <select id="select-modalidad-empieza">
+                            <option value="Todas">Todas</option>
+                            <option value="SORTEO TRADICIONAL">Tradicional</option>
+                            <option value="LA SEGUNDA DEL QUINI">Segunda</option>
+                            <option value="SORTEO REVANCHA">Revancha</option>
+                            <option value="QUINI QUE SIEMPRE SALE">Siempre sale</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="input-busqueda-empieza">Buscar combinación</label>
+                        <input type="text" id="input-busqueda-empieza" placeholder="Ej. 5-12-22 (o con espacios/comas)">
+                    </div>
+                </div>
+            </div>
+
+            <p id="total-empieza-text" class="bold-text" style="margin-top: 1.5rem; margin-bottom: 0.5rem;"></p>
+            <div class="table-scroll-large">
+                <table id="tabla-empieza-con">
+                    <thead>
+                        <tr>
+                            <th>Número Inicial</th>
+                            <th>Jugada Completa</th>
+                            <th>Fecha</th>
+                            <th>Sorteo #</th>
+                            <th>Modalidad</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Flatpickr JS y Localización en Español -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/es.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

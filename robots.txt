@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /datos_recolectados.csv
+Disallow: /datos_procesados.csv
